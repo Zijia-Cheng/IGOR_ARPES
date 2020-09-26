@@ -46,7 +46,7 @@ Function fixfermilevel(ekcut, startenergy, energyrange)
 End
 
 
-Function Photonenergydep(inputwave, outputname,startenergy,energyrange)
+Function Photonenergydep1(inputwave, outputname,startenergy,energyrange)
 		//20191210 by CZJ
 		// This is for combiming different photon energy cuts. so we need to rescale kx at each photon energy and also align fermi levels.
 		// The input should be a three dimensional wave with dimension : 0 -> angle, 1-> energy, 2-> light energy.
@@ -142,3 +142,95 @@ Function Photonenergydep(inputwave, outputname,startenergy,energyrange)
 		
 		
 End
+
+
+Function Photonenergydep2(wavenamelist,photoenergylist,outputwavename)
+
+//The input wavelist should be: the name of 2d cuts, which dim0 is kinetic energy and dim1 is angle(not momentum)
+//photoenergylist is the list of photonenergies
+//This function is trying to solve the problem if different energy cuts has different energy scaling and angle range.So each cut will be rescaled based on its own range
+//NOTE: this function will change the scaling of the waves in the wavenamelist, so strongly suggest to duplicate waves first.
+
+wave /T wavenamelist
+wave photoenergylist
+String outputwavename
+
+variable workfunction = 4.35
+
+//error handling
+if(dimsize(wavenamelist,0)!=dimsize(photoenergylist,0))
+	print("dimensions of input waves are not right")
+	Abort
+endif
+
+//rescale each cut, can be commented if the cuts are already scaled. Note this will scaling on the original wave
+variable i=0
+for(i=0;i<dimsize(wavenamelist,0);i++)
+	cutregulation(wavenamelist[i],photoenergylist[i],workfunction)
+endfor
+
+WaveStats photoenergylist
+string Max_wavename = wavenamelist[V_maxloc]
+
+Make /O /N=(dimsize($Max_wavename,0),dimsize($Max_wavename,1),dimsize(wavenamelist,0)), $outputwavename
+wave temp = $outputwavename
+
+Setscale /P x, dimoffset($Max_wavename,0), dimdelta($Max_wavename,0),$outputwavename
+Setscale /P y, dimoffset($Max_wavename,1), dimdelta($Max_wavename,1),$outputwavename
+Setscale /I z, Wavemin(photoenergylist), Wavemax(photoenergylist),$outputwavename
+
+Duplicate /O photoenergylist, temp2
+sort temp2,temp2 
+
+
+string wavenamest
+variable j,k,l
+for(j=0;j<dimsize(wavenamelist,0);j++)
+	FindValue /V = (temp2[j]) photoenergylist
+	wavenamest = wavenamelist[V_value]
+	wave temp3 = $wavenamest
+	
+	for(k=0;k<dimsize($Max_wavename,0);k++)
+		if(indexToscale($Max_wavename,k,0)<min(dimoffset($wavenamest,0),indextoScale($wavenamest,dimsize($wavenamest,0)-1,0))||indexToscale($Max_wavename,k,0)>Max(dimoffset($wavenamest,0),indextoScale($wavenamest,dimsize($wavenamest,0)-1,0)))
+			temp[k][][j] = q-q
+		else
+			for(l=0;l<dimsize($Max_wavename,1);l++)
+				if(indexToscale($Max_wavename,l,1)<min(dimoffset($wavenamest,1),indextoScale($wavenamest,dimsize($wavenamest,1)-1,1))||indexToscale($Max_wavename,l,1)>Max(dimoffset($wavenamest,1),indextoScale($wavenamest,dimsize($wavenamest,1)-1,1)))
+					temp[k][l][j] = 0
+				else
+					temp[k][l][j] = temp3(indexToscale($Max_wavename,k,0))(indexToscale($Max_wavename,l,1))
+				endif
+			endfor
+		endif
+	endfor
+endfor
+
+
+
+
+End
+
+
+Function cutregulation(wavenamest,photonenergy,workfunction)
+
+string wavenamest
+variable photonenergy
+variable workfunction
+
+//perhaps here you need to determine the real photon energy position by fitting
+Setscale /P x,dimoffset($wavenamest,0)-(photonenergy - workfunction), dimdelta($wavenamest,0), $wavenamest
+Setscale /P y,0.5132*sqrt(photonenergy - workfunction)*Pi/180*(dimoffset($wavenamest,1)),0.5132*sqrt(photonenergy - workfunction)*Pi/180*(dimdelta($wavenamest,1)),$wavenamest
+
+//Needs to more rigoriously fix the fermi energy position
+
+variable E_fermi
+Matrixtranspose $wavenamest
+E_fermi = fixfermilevel($wavenamest,0,0.5)
+Matrixtranspose $wavenamest
+
+
+
+End
+
+
+
