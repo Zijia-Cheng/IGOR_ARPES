@@ -116,16 +116,26 @@ Function SSRL_HDFload_3D(startnumber, endnumber)
 	
 	Variable startnumber, endnumber
 	Variable i = 0;
-	
+	String name 
 	
 
 	
 	For( i = Min(startnumber, endnumber); i<= Max(startnumber, endnumber);i++)
 		
-		String name = "CSS1_"+"000"+num2str(i)//Need to adjust
+		
+		if(i<100 && i>=10)
+			name = "TMFS1_"+"000"+num2str(i)// Need to change 
+		elseif(i>=100)
+			name = "TMFS1_"+"00"+num2str(i)// Need to change 
+		elseif(i<10)
+			name = "TMFS1_"+"0000"+num2str(i)// Need to change 
+		endif
+		
+		// Needs to change when dealing with other data sets
 		String filepath = "Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"+name+".h5"
 		HDF5LoadDataset("Count","Data","Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"+name+".h5", name+"_count")
 		HDF5LoadDataset("Time","Data","Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"+name+".h5", name+"_time")
+		
 		wave count = $(name+"_count")
 		wave time0 = $(name+"_time")
 		
@@ -168,10 +178,20 @@ Function SSRL_HDFload_2D(startnumber, endnumber)
 	
 	Variable startnumber, endnumber
 	Variable i = 0;
+	String name 
 	
 	For( i = Min(startnumber, endnumber); i<= Max(startnumber, endnumber);i++)
 		
-		String name = "CSS1_"+"00"+num2str(i)// Need to change 
+		if(i<100 && i>=10)
+			name = "TMFS1_"+"000"+num2str(i)// Need to change 
+		elseif(i>=100)
+			name = "TMFS1_"+"00"+num2str(i)// Need to change 
+		elseif(i<10)
+			name = "TMFS1_"+"0000"+num2str(i)// Need to change 
+		endif
+		
+		//Needs to change
+		
 		HDF5LoadDataset("Count","Data","Macintosh HD:Users:chengzijia:Desktop:princeton:hasan_group:Co3Sn2S2:20200201:"+name+".h5", name+"_count")
 		HDF5LoadDataset("Time","Data","Macintosh HD:Users:chengzijia:Desktop:princeton:hasan_group:Co3Sn2S2:20200201:"+name+".h5", name+"_time")
 		wave count = $(name+"_count")
@@ -186,6 +206,15 @@ Function SSRL_HDFload_2D(startnumber, endnumber)
 		temp1[][] = count_[p][q]/time0_[p][q]
 		Matrixop /O temp = replaceNaNs(temp1,0)
 		killwaves count, time0, temp1, time0_, count_
+		
+		//Rescale based on the HDF5 attribute
+		Variable offset_energy = LoadHDF5NumericAttribute("",filepath+name+".h5","/Data/Axes0","/Data/Axes0",1,"Offset")
+		Variable delta_energy  = LoadHDF5NumericAttribute("",filepath+name+".h5","/Data/Axes0","/Data/Axes0",1,"Delta")
+		Setscale /P x, offset_energy, delta_energy, temp
+		
+		Variable offset_mome = LoadHDF5NumericAttribute("",filepath+name+".h5","/Data/Axes1","/Data/Axes1",1,"Offset")
+		Variable delta_mome  = LoadHDF5NumericAttribute("",filepath+name+".h5","/Data/Axes1","/Data/Axes1",1,"Delta")
+		Setscale /P y, offset_mome, delta_mome, temp
 
 		
 	Endfor
@@ -196,7 +225,7 @@ End
 
 Function combine()
 	
-	//use for combining cuts
+	//use for combining cuts into one 3D matrix
 	String /G namelist 
 	variable i
 	namelist = ""
