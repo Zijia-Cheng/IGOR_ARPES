@@ -46,7 +46,7 @@ Function fixfermilevel(ekcut, startenergy, energyrange)
 End
 
 
-Function alignfs(inputwave, outputname,startenergy,energyrange)
+Function Photonenergydep(inputwave, outputname,startenergy,energyrange)
 		//20191210 by CZJ
 		// This is for combiming different photon energy cuts. so we need to rescale kx at each photon energy and also align fermi levels.
 		// The input should be a three dimensional wave with dimension : 0 -> angle, 1-> energy, 2-> light energy.
