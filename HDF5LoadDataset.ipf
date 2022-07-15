@@ -79,7 +79,7 @@ Function LoadHDF5NumericAttribute(pathName, filePath, groupPath, objectName, obj
 		HDF5CloseFile fileID
 		return -1
 	endif
-
+	
 	HDF5LoadData /O /A=attributeName /TYPE=(objectType) /N=tempAttributeWave /Z fileID, objectName
 	result = V_flag	// 0 if OK or non-zero error code
 	
@@ -112,30 +112,30 @@ Function LoadHDF5NumericAttribute(pathName, filePath, groupPath, objectName, obj
 End
 
 
-Function SSRL_HDFload_3D(startnumber, endnumber)
-	
+Function SSRL_HDFload_3D(startnumber, endnumber,presur,filepath)
+	//For loading both photon energy dependence + maps 
 	Variable startnumber, endnumber
+	String presur //TMFS1_
+	String filepath //"Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"
 	Variable i = 0;
-	String name 
-	
-
+	String name
 	
 	For( i = Min(startnumber, endnumber); i<= Max(startnumber, endnumber);i++)
 		
 		
-		if(i<100 && i>=10)
-			name = "TMFS1_"+"000"+num2str(i)// Need to change 
-		elseif(i>=100)
-			name = "TMFS1_"+"00"+num2str(i)// Need to change 
-		elseif(i<10)
-			name = "TMFS1_"+"0000"+num2str(i)// Need to change 
-		endif
+		if(i<10)
+			name = presur+"000"+num2str(i)
+		elseif(10<=i && i<100)
+			name = presur+"00"+num2str(i)
+		elseif(i>=100 && i<1000)
+			name = presur+"0"+num2str(i)
+		else
+			print("number out of range")
+		endif			
 		
-		// Needs to change when dealing with other data sets
-		String filepath = "Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"+name+".h5"
-		HDF5LoadDataset("Count","Data","Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"+name+".h5", name+"_count")
-		HDF5LoadDataset("Time","Data","Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"+name+".h5", name+"_time")
-		
+		String datapath = filepath +name+".h5"
+		HDF5LoadDataset("Count","Data",datapath, name+"_count")
+		HDF5LoadDataset("Time","Data",datapath, name+"_time")
 		wave count = $(name+"_count")
 		wave time0 = $(name+"_time")
 		
@@ -149,21 +149,21 @@ Function SSRL_HDFload_3D(startnumber, endnumber)
 		
 		temp1[][][] = count_[p][q][r]/time0_[p][q][r]
 		Matrixop /O temp = replaceNaNs(temp1,0)
-		killwaves count, time0, temp1, time0_, count_
+		killwaves count, temp1,count_,time0_,time0
 		
-		Variable offset_energy = LoadHDF5NumericAttribute("",filepath,"/Data/Axes0","/Data/Axes0",1,"Offset")
-		Variable delta_energy  = LoadHDF5NumericAttribute("",filepath,"/Data/Axes0","/Data/Axes0",1,"Delta")
-		Setscale /P z, offset_energy, delta_energy, temp
+		Variable offset_energy = LoadHDF5NumericAttribute("",datapath,"/Data/Axes0","/Data/Axes0",1,"Offset")
+		Variable delta_energy  = LoadHDF5NumericAttribute("",datapath,"/Data/Axes0","/Data/Axes0",1,"Delta")
+		Setscale /P x, offset_energy, delta_energy, temp
 		
-		Variable offset_mome = LoadHDF5NumericAttribute("",filepath,"/Data/Axes1","/Data/Axes1",1,"Offset")
-		Variable delta_mome  = LoadHDF5NumericAttribute("",filepath,"/Data/Axes1","/Data/Axes1",1,"Delta")
+		Variable offset_mome = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Offset")
+		Variable delta_mome  = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Delta")
 		Setscale /P y, offset_mome, delta_mome, temp
 		
-		Variable offset_polar = LoadHDF5NumericAttribute("",filepath,"/Data/Axes2","/Data/Axes2",1,"Offset")
-		Variable delta_polar = LoadHDF5NumericAttribute("",filepath,"/Data/Axes2","/Data/Axes2",1,"Delta")
-		Setscale /P x, offset_polar, delta_polar, temp
+		Variable offset_polar = LoadHDF5NumericAttribute("",datapath,"/Data/Axes2","/Data/Axes2",1,"Offset")
+		Variable delta_polar = LoadHDF5NumericAttribute("",datapath,"/Data/Axes2","/Data/Axes2",1,"Delta")
+		Setscale /P z, offset_polar, delta_polar, temp
 		
-		Killvariables offset_energy, delta_energy, offset_mome,delta_mome,offset_polar,delta_polar
+		
 		
 		
 
@@ -174,26 +174,287 @@ Function SSRL_HDFload_3D(startnumber, endnumber)
 
 End
 
-Function SSRL_HDFload_2D(startnumber, endnumber)
+
+Function Ultra_HDFload_3D(startnumber, endnumber,presur,filepath)
+	//For loading both photon energy dependence + maps for Ultra
+	//20220217 by ZJC
 	
 	Variable startnumber, endnumber
+	String presur //TMFS1_
+	String filepath //"Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"
 	Variable i = 0;
-	String name 
+	String name
 	
 	For( i = Min(startnumber, endnumber); i<= Max(startnumber, endnumber);i++)
 		
-		if(i<100 && i>=10)
-			name = "TMFS1_"+"000"+num2str(i)// Need to change 
-		elseif(i>=100)
-			name = "TMFS1_"+"00"+num2str(i)// Need to change 
-		elseif(i<10)
-			name = "TMFS1_"+"0000"+num2str(i)// Need to change 
-		endif
 		
-		//Needs to change
+		if(i<10)
+			name = presur+"000"+num2str(i)
+		elseif(10<=i && i<100)
+			name = presur+"00"+num2str(i)
+		elseif(i>=100 && i<1000)
+			name = presur+"0"+num2str(i)
+		else
+			print("number out of range")
+		endif			
 		
-		HDF5LoadDataset("Count","Data","Macintosh HD:Users:chengzijia:Desktop:princeton:hasan_group:Co3Sn2S2:20200201:"+name+".h5", name+"_count")
-		HDF5LoadDataset("Time","Data","Macintosh HD:Users:chengzijia:Desktop:princeton:hasan_group:Co3Sn2S2:20200201:"+name+".h5", name+"_time")
+		String datapath = filepath +name+".h5"
+		HDF5LoadDataset("Image Data","Electron Analyzer",datapath, name+"_data")
+		wave count = $(name+"_data")
+		Redimension/S count
+		
+		//Matrixop /O count_ = replaceNaNs(count,0)
+		
+		
+		
+		LoadHDF5NumericAttribute("",datapath,"/Electron Analyzer","/Electron Analyzer/Image Data",2,"Axis0.Scale")
+		wave tempAttributeWave
+		Setscale /P x, tempAttributeWave[0], tempAttributeWave[1], count
+		
+		
+		LoadHDF5NumericAttribute("",datapath,"/Electron Analyzer","/Electron Analyzer/Image Data",2,"Axis1.Scale")
+		Setscale /P y, tempAttributeWave[0], tempAttributeWave[1], count
+		
+		LoadHDF5NumericAttribute("",datapath,"/Electron Analyzer","/Electron Analyzer/Image Data",2,"Axis2.Scale")
+		Setscale /P z, tempAttributeWave[0], tempAttributeWave[1], count
+		
+		
+		
+		
+
+		
+	Endfor
+
+
+
+End
+
+
+Function Ultra_HDFload_2D(startnumber, endnumber,presur,filepath)
+	//For loading cuts for Ultra
+	//20220217 by ZJC
+	
+	Variable startnumber, endnumber
+	String presur //TMFS1_
+	String filepath //"Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"
+	Variable i = 0;
+	String name
+	
+	For( i = Min(startnumber, endnumber); i<= Max(startnumber, endnumber);i++)
+		
+		
+		if(i<10)
+			name = presur+"000"+num2str(i)
+		elseif(10<=i && i<100)
+			name = presur+"00"+num2str(i)
+		elseif(i>=100 && i<1000)
+			name = presur+"0"+num2str(i)
+		else
+			print("number out of range")
+		endif			
+		
+		String datapath = filepath +name+".h5"
+		HDF5LoadDataset("Image Data","Electron Analyzer",datapath, name+"_data")
+		wave count = $(name+"_data")
+		Redimension/S count
+		
+		//Matrixop /O count_ = replaceNaNs(count,0)
+		
+		
+		
+		LoadHDF5NumericAttribute("",datapath,"/Electron Analyzer","/Electron Analyzer/Image Data",2,"Axis0.Scale")
+		wave tempAttributeWave
+		Setscale /P x, tempAttributeWave[0], tempAttributeWave[1], count
+		
+		
+		LoadHDF5NumericAttribute("",datapath,"/Electron Analyzer","/Electron Analyzer/Image Data",2,"Axis1.Scale")
+		Setscale /P y, tempAttributeWave[0], tempAttributeWave[1], count
+		
+
+
+		
+	Endfor
+
+
+
+End
+
+
+
+
+
+
+
+
+
+Function Diamond_HDFload_3D(startnumber, endnumber,filepath)
+
+	//ZJC 20210910
+	//Load a series of 3D files with number index(in the name) from start number to endnumber
+	Variable startnumber, endnumber // Sixdigits in the file name(usually: like 130119)
+	String filepath //"Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"
+	Variable i = 0;
+	String name1,name2
+	String presur="i05" 
+	
+	For( i = Min(startnumber, endnumber); i<= Max(startnumber, endnumber);i++)
+		
+		name1 = presur+"-"+num2istr(i)
+		name2 = presur+"_"+num2istr(i)
+		String datapath = filepath +name1+".nxs"
+		HDF5LoadDataset("data","entry1/analyser",datapath, name2+"_data")
+		wave count = $(name2+"_data")
+		HDF5LoadDataset("angles","entry1/analyser",datapath, name2+"_angle")
+		wave angle = $(name2+"_angle")	
+		HDF5LoadDataset("energies","entry1/analyser",datapath, name2+"_energy")
+		wave energy = $(name2+"_energy")
+		HDF5LoadDataset("sapolar","entry1/analyser",datapath, name2+"_polar")
+		wave polar = $(name2+"_polar")					
+		
+		Setscale /I y, angle[0], angle[dimsize(angle,0)-1], count
+		Setscale /I z, energy[0][0], energy[0][dimsize(energy,1)-1], count		
+		Setscale /I x, polar[0], polar[dimsize(polar,0)-1], count			
+		
+		Redimension/S count
+		
+		killwaves angle,energy,polar
+		
+		
+		
+		
+				
+//		Matrixop /O time0_ = replaceNaNs(time0,0)
+//		Matrixop /O count_ = replaceNaNs(count,0)
+		
+		
+//		temp1[][][] = count_[p][q][r]/time0_[p][q][r]
+//		Matrixop /O temp = replaceNaNs(temp1,0)
+//		killwaves count, temp1,count_,time0_,time0
+		
+//		Variable offset_energy = LoadHDF5NumericAttribute("",datapath,"/Data/Axes0","/Data/Axes0",1,"Offset")
+//		Variable delta_energy  = LoadHDF5NumericAttribute("",datapath,"/Data/Axes0","/Data/Axes0",1,"Delta")
+//		Setscale /P x, offset_energy, delta_energy, temp
+//		
+//		Variable offset_mome = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Offset")
+//		Variable delta_mome  = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Delta")
+//		Setscale /P y, offset_mome, delta_mome, temp
+//		
+//		Variable offset_polar = LoadHDF5NumericAttribute("",datapath,"/Data/Axes2","/Data/Axes2",1,"Offset")
+//		Variable delta_polar = LoadHDF5NumericAttribute("",datapath,"/Data/Axes2","/Data/Axes2",1,"Delta")
+//		Setscale /P z, offset_polar, delta_polar, temp
+		
+		
+		
+		
+
+		
+	Endfor
+
+
+
+End
+
+
+
+Function Diamond_HDFload_2D(startnumber, endnumber,filepath)
+
+	//ZJC 20210910
+	Variable startnumber, endnumber
+	String filepath //"Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"
+	Variable i = 0;
+	String name1,name2
+	String presur="i05" 
+	
+	
+	For( i = Min(startnumber, endnumber); i<= Max(startnumber, endnumber);i++)
+		
+		name1 = presur+"-"+num2istr(i)
+		name2 = presur+"_"+num2istr(i)
+		String datapath = filepath +name1+".nxs"
+		HDF5LoadDataset("data","entry1/analyser",datapath, name2+"_data")
+		wave count = $(name2+"_data")
+		HDF5LoadDataset("angles","entry1/analyser",datapath, name2+"_angle")
+		wave angle = $(name2+"_angle")	
+		HDF5LoadDataset("energies","entry1/analyser",datapath, name2+"_energy")
+		wave energy = $(name2+"_energy")
+
+		Setscale /I y, angle[0], angle[dimsize(angle,0)-1], count
+		Setscale /I z, energy[0][0], energy[0][dimsize(energy,1)-1], count		
+		
+		
+		Redimension/S count
+		
+		killwaves angle,energy
+		
+		
+		
+		
+				
+//		Matrixop /O time0_ = replaceNaNs(time0,0)
+//		Matrixop /O count_ = replaceNaNs(count,0)
+		
+		
+//		temp1[][][] = count_[p][q][r]/time0_[p][q][r]
+//		Matrixop /O temp = replaceNaNs(temp1,0)
+//		killwaves count, temp1,count_,time0_,time0
+		
+//		Variable offset_energy = LoadHDF5NumericAttribute("",datapath,"/Data/Axes0","/Data/Axes0",1,"Offset")
+//		Variable delta_energy  = LoadHDF5NumericAttribute("",datapath,"/Data/Axes0","/Data/Axes0",1,"Delta")
+//		Setscale /P x, offset_energy, delta_energy, temp
+//		
+//		Variable offset_mome = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Offset")
+//		Variable delta_mome  = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Delta")
+//		Setscale /P y, offset_mome, delta_mome, temp
+//		
+//		Variable offset_polar = LoadHDF5NumericAttribute("",datapath,"/Data/Axes2","/Data/Axes2",1,"Offset")
+//		Variable delta_polar = LoadHDF5NumericAttribute("",datapath,"/Data/Axes2","/Data/Axes2",1,"Delta")
+//		Setscale /P z, offset_polar, delta_polar, temp
+		
+		
+		
+		
+
+		
+	Endfor
+
+
+
+End
+
+
+
+
+
+Function SSRL_HDFload_2D(startnumber, endnumber,presur,filepath)
+	
+	Variable startnumber, endnumber
+	string presur//TMFS1_
+	string filepath//"Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"
+	string name
+	
+	
+	Variable i = 0;
+	
+	String /G groupname = ""
+	
+	
+	For( i = Min(startnumber, endnumber); i<= Max(startnumber, endnumber);i++)
+		
+		if(i<10)
+			name = presur+"000"+num2str(i)
+		elseif(10<=i && i<100)
+			name = presur+"00"+num2str(i)
+		elseif(i>=100 && i<1000)
+			name = presur+"0"+num2str(i)
+		else
+			print("number out of range")
+		endif		
+		
+		groupname += name+";"
+		String datapath = filepath +name+".h5"
+		
+		HDF5LoadDataset("Count","Data",datapath, name+"_count")
+		HDF5LoadDataset("Time","Data",datapath, name+"_time")
 		wave count = $(name+"_count")
 		wave time0 = $(name+"_time")
 		
@@ -203,18 +464,23 @@ Function SSRL_HDFload_2D(startnumber, endnumber)
 		Matrixop /O time0_ = replaceNaNs(time0,0)
 		Matrixop /O count_ = replaceNaNs(count,0)
 		
+		
 		temp1[][] = count_[p][q]/time0_[p][q]
 		Matrixop /O temp = replaceNaNs(temp1,0)
-		killwaves count, time0, temp1, time0_, count_
 		
-		//Rescale based on the HDF5 attribute
-		Variable offset_energy = LoadHDF5NumericAttribute("",filepath+name+".h5","/Data/Axes0","/Data/Axes0",1,"Offset")
-		Variable delta_energy  = LoadHDF5NumericAttribute("",filepath+name+".h5","/Data/Axes0","/Data/Axes0",1,"Delta")
+		Variable offset_energy = LoadHDF5NumericAttribute("",datapath,"/Data/Axes0","/Data/Axes0",1,"Offset")
+		Variable delta_energy  = LoadHDF5NumericAttribute("",datapath,"/Data/Axes0","/Data/Axes0",1,"Delta")
 		Setscale /P x, offset_energy, delta_energy, temp
 		
-		Variable offset_mome = LoadHDF5NumericAttribute("",filepath+name+".h5","/Data/Axes1","/Data/Axes1",1,"Offset")
-		Variable delta_mome  = LoadHDF5NumericAttribute("",filepath+name+".h5","/Data/Axes1","/Data/Axes1",1,"Delta")
+		Variable offset_mome = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Offset")
+		Variable delta_mome  = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Delta")
 		Setscale /P y, offset_mome, delta_mome, temp
+		
+		killwaves count,  temp1,  count_
+		
+		
+		
+		
 
 		
 	Endfor
@@ -223,9 +489,158 @@ Function SSRL_HDFload_2D(startnumber, endnumber)
 
 End
 
+Function SSRL_HDFload_photonenergydep(number,presur,filepath,anglecenter)
+
+//anglecenter is the analyser slit angle which gamma zero locates at
+//number is the file number
+//fermi level correction can be adjusted
+//Need to update based on new load HDF5 file format
+
+
+variable number
+string presur
+string filepath
+variable anglecenter
+
+string name
+
+if(number<10)
+	name = presur+"000"+num2str(number)
+elseif(10<=number && number<100)
+	name = presur+"00"+num2str(number)
+elseif(number>=100 && number<1000)
+	name = presur+"0"+num2str(number)
+else
+	print("number out of range")
+endif		
+
+String datapath = filepath +name+".h5"
+
+
+HDF5LoadDataset("Count","Data",datapath, name+"_count")
+HDF5LoadDataset("Time","Data",datapath, name+"_time")
+wave count = $(name+"_count")
+wave time0 = $(name+"_time")
+		
+Duplicate /O count, $name, temp1
+wave temp = $name
+
+
+Matrixop /O time0_ = replaceNaNs(time0,0)
+Matrixop /O count_ = replaceNaNs(count,0)
+		
+temp1[][][] = count_[p][q][r]
+Matrixop /O temp = replaceNaNs(temp1,0)
+killwaves count, temp1, count_
+
+variable i = 0
+
+HDF5LoadDataset("Data:Axes0:Offset","MapInfo",datapath, name+"_energyoffset")
+wave energyoffset = $(name+"_energyoffset")
+//HDF5LoadDataset("Data:Axes1:Offset","Data",datapath, name+"_angleoffset")
+//wave angle_offset = $(name+"_angleoffset")
+//HDF5LoadDataset("Data:Axes1:Delta","Data",datapath, name+"_angledelta")
+//wave angle_delta = $(name+"_angledelta")
+
+Variable delta_energy  = LoadHDF5NumericAttribute("",datapath,"/Data/Axes0","/Data/Axes0",1,"Delta")
+Variable startenergy = LoadHDF5NumericAttribute("",datapath,"/Data/Axes2","/Data/Axes2",1,"Offset")
+Variable energy_stepsize = LoadHDF5NumericAttribute("",datapath,"/Data/Axes2","/Data/Axes2",1,"Delta")
+Variable energy_steps = LoadHDF5NumericAttribute("",datapath,"/Data/Axes2","/Data/Axes2",1,"Count")
+Variable angle_offset_c = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Offset")
+Variable angle_delta_c = LoadHDF5NumericAttribute("",datapath,"/Data/Axes1","/Data/Axes1",1,"Delta")
+
+
+
+Make /T /N=(energy_steps) /O $(name+"_namelist")
+Make /N =(energy_steps)/O $(name+"_energylist")
+wave /T namelist=$(name+"_namelist")
+wave energylist = $(name+"_energylist")
+
+string wavenames
+variable fermilevel//corection for Ef drift at different photon energy 
+for(i=0;i<energy_steps;i++)
+	energylist[i] = startenergy+i*energy_stepsize
+	wavenames = name+"_"+num2str(energylist[i])+"eV"
+	namelist[i] =wavenames
+	Duplicate /O /RMD=[][][i] temp,$wavenames
+	wave cut2D = $wavenames
+	redimension /N=(-1,-1) cut2D
+	Setscale /P	x, energyoffset[i],delta_energy,cut2D
+	//Setscale /P y, angle_offset[i]-anglecenter,angle_delta[i],cut2D
+	Setscale /P y, angle_offset_c-anglecenter,angle_delta_c,cut2D
+	fermilevel = fixfermilevel_SSRL(cut2D,energylist[i]-4.365, 0.3)//0.4 can be changed
+	Setscale /P	x, energyoffset[i] - fermilevel + energylist[i]-4.365,delta_energy,cut2D
+	
+	
+	
+
+endfor
+
+
+
+End
+
+
+Function fixfermilevel_SSRL(ekcut, startenergy, energyrange)
+	//2this is a part of the program used for align the fermi level for photon energy dependence, etc.
+	//ekcut should be a 2d wave with dimension 1: angle/momentum; dimension 0: energy.
+	//Method: find the largest derivative and that is the fermi energy
+	//The fermi level should within startenergy+- energyrange
+	
+	wave ekcut
+	variable startenergy, energyrange
+	Make /O /N = (dimsize(ekcut,0)), energyspec = 0
+	Variable i,j, fermi
+	
+	
+	// make energy spectrum
+	for(i=0;i < dimsize(ekcut,0);i++)
+		for(j = 0; j  < dimsize(ekcut,1);j++)
+			energyspec[i] =  ekcut[i][j] + energyspec[i]
+		endfor		
+	endfor
+	
+	Setscale /P x , dimoffset(ekcut,0), dimdelta(ekcut,0), energyspec 
+	if(startenergy+energyrange > dimoffset(energyspec,0)+(dimsize(energyspec,0)-1)*dimDelta(energyspec,0))
+		Duplicate /O /R = (startenergy-energyrange,dimoffset(energyspec,0)+(dimsize(energyspec,0)-1)*dimDelta(energyspec,0)) energyspec, $"test_SSRL"
+	else
+		Duplicate /O /R = (startenergy-energyrange, startenergy+energyrange) energyspec, $"test_SSRL"
+	endif
+	//method: use differentiate to get the largest change point in the integerated spectrum:
+	//seems we need to narrow down the energy range.
+	
+	Differentiate/METH=1 $"test_SSRL"/D=energyspec__DIF;DelayUpdate
+	wave energyspec__DIF
+	
+	energyspec__DIF[] = abs(energyspec__DIF[p])
+	
+	Findvalue /V = (Wavemax(energyspec__DIF)) energyspec__DIF
+	fermi = Indextoscale(energyspec__DIF,V_value,0)
+	
+	//reset scaling of ekcutprin
+	//Setscale /P y, dimoffset(ekcut,1) - fermi, dimdelta(ekcut,1), ekcut
+	killwaves $"test_SSRL"
+	
+	return fermi
+	
+	
+End
+
+
+
+
+
+
+
+
+
+
+
+
+
 Function combine()
 	
-	//use for combining cuts into one 3D matrix
+	//use for combining cuts
 	String /G namelist 
 	variable i
 	namelist = ""
