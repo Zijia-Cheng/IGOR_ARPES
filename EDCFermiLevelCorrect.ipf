@@ -16,6 +16,27 @@
 //dim0 is scanning angle
 //dim1 is analyzer angle
 //dim2 is binding energy
+
+Function transposewave(inputwave,outputwave)
+
+//Inputwave is a wave, and outputwave is the wavename
+//This is for transposing the SSRL fermi surface map for further FS alignment
+
+wave inputwave
+string outputwave
+
+make /O $outputwave
+wave temp = $outputwave
+matrixop /O temp = transposeVol(inputwave,3)
+setscale /p x, dimoffset(inputwave,2),dimdelta(inputwave,2),temp
+setscale /p y,dimoffset(inputwave,1),dimdelta(inputwave,1),temp
+setscale /P z,dimoffset(inputwave,0),dimdelta(inputwave,0),temp
+
+
+
+End
+
+
 Function SmoothDerivOutput3D(InputWave,OutputWave,CutOffPercentage,SmoothRange, SmoothTimes,EfMinPt,EfMaxPt)
 	Wave InputWave
 	Wave OutputWave
@@ -108,6 +129,99 @@ Function SmoothDerivOutput3D(InputWave,OutputWave,CutOffPercentage,SmoothRange, 
        endfor
 		
 End
+
+Function SmoothDerivOutput3D_nonfit(InputWave,OutputWave,CutOffPercentage,SmoothRange, SmoothTimes,EfMinPt,EfMaxPt)
+	Wave InputWave
+	Wave OutputWave
+	Variable CutOffPercentage
+	Variable SmoothRange
+	Variable SmoothTimes
+	Variable EfMinPt
+	Variable EfMaxPt
+	
+	variable v_sum
+	wavestats /q InputWave
+	Variable CutOffIntensity=v_sum/(dimsize(inputwave,0)*dimsize(inputwave,1))*CutOffPercentage
+	
+	String EDCName = "SingleEDC"
+	Make /O /N=(dimsize(inputwave,2)) $EDCName
+	Wave EDC = $EDCName
+	
+	 String EfIndexName=NameofWave(InputWave)+"EfIndex"
+	 Make /O /N=(dimsize(inputwave,0),dimsize(inputwave,1)) $EfIndexName
+	 Wave EfIndex=$EfIndexName
+	 
+	 setscale /p x, dimoffset(inputwave,0),dimdelta(inputwave,0),efindex
+	 setscale /p y, dimoffset(inputwave,1),dimdelta(inputwave,1),efindex
+	 
+	String TempEfValueWaveName = "TempEf"
+	Make /O /N=1 $TempEfValueWaveName
+	Wave TempEfValue = $TempEfValueWaveName
+	
+	variable i,j
+	
+	for(i=0;i<dimsize(inputwave,0);i+=1)
+	for(j=0;j<dimsize(inputwave,1);j+=1)
+		EDC[]=InputWave[i][j][p]
+		wavestats /q EDC
+		If(v_sum>cutoffintensity)
+			smoothderivoutput(EDC,TempefValue,SmoothRange,SmoothTimes,EfMinPt,EfMaxPt)
+			EfIndex[i][j]=TempEfValue[0]
+		Else
+			EfIndex[i][j]=NaN
+		EndIf
+	endfor
+	endfor
+
+	
+	variable fermiMax=round(WaveMax(EfIndex))
+	variable fermiMin=round(WaveMin(EfIndex))
+	Variable extra = fermiMax-fermiMin
+	
+	String photDepShiftStr = NameofWave(OutputWave)
+	Make /O/N=(DimSize(Inputwave,0),Dimsize(inputwave,1),DimSize(Inputwave,2)+extra) $photDepShiftStr
+       Wave photDepShift = $photDepShiftStr
+       setscale /p x, dimoffset(inputwave,0),dimdelta(inputwave,0),photdepshift
+       setscale /p y, dimoffset(inputwave,1),dimdelta(inputwave,1),photdepshift
+       setscale /p z, -fermimax*dimdelta(inputwave,2),dimdelta(inputwave,2),photdepshift
+       
+       variable fermi, start
+       
+       for(i=0;i<dimsize(inputwave,0);i+=1)
+       for(j=0;j<dimsize(inputwave,1);j+=1)
+       	if(numtype(efindex[i][j])==2)
+     			wavestats /q efindex
+     			fermi=v_avg
+            	else
+       		fermi=efindex[i][j]
+       	endif
+       	start=round(fermimax-fermi)
+       	if(start<0)
+       		print "start is less than zero"
+       	endif
+       	if(start+dimsize(inputwave,2)-1>dimsize(photdepshift,2)-1)
+       		print "troube in middle region"
+       		print start
+       		print dimsize(inputwave,2)
+       		print dimsize(photdepshift,2)
+       		print fermi
+       		print fermimin
+       		return(0)
+       	endif
+       	photDepShift[i][j][,start] = InputWave[i][j][0]
+       	photDepShift[i][j][start,start+DimSize(Inputwave,2)-1] = InputWave[i][j][r-start]
+      		photDepShift[i][j][start+DimSize(inputwave,2)-1,] = InputWave[i][j][DimSize(InputWave,2)-1]
+       endfor
+       endfor
+		
+End
+
+
+
+
+
+
+
 
 //dim0 is analyzer angle
 //dim1 is binding energy
@@ -212,29 +326,29 @@ Function SmoothDerivOutput(InputEDC,Result,SmoothRange,SmoothTimes,EfMinPt,EfMax
 	
 End
 
-Function TwoDQaud(w,x,y) : FitFunc
-	Wave w
-	Variable x
-	Variable y
-
-	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
-	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
-	//CurveFitDialog/ Equation:
-	//CurveFitDialog/ f(x,y) = C1+C2*y+C3*y^2+C4*x+C5*x*y+C6*x*y^2+C7*x^2+C8*x^2*y+C9*x^2*y^2
-	//CurveFitDialog/ End of Equation
-	//CurveFitDialog/ Independent Variables 2
-	//CurveFitDialog/ x
-	//CurveFitDialog/ y
-	//CurveFitDialog/ Coefficients 9
-	//CurveFitDialog/ w[0] = C1
-	//CurveFitDialog/ w[1] = C2
-	//CurveFitDialog/ w[2] = C3
-	//CurveFitDialog/ w[3] = C4
-	//CurveFitDialog/ w[4] = C5
-	//CurveFitDialog/ w[5] = C6
-	//CurveFitDialog/ w[6] = C7
-	//CurveFitDialog/ w[7] = C8
-	//CurveFitDialog/ w[8] = C9
-
-	return w[0]+w[1]*y+w[2]*y^2+w[3]*x+w[4]*x*y+w[5]*x*y^2+w[6]*x^2+w[7]*x^2*y+w[8]*x^2*y^2
-End
+//Function TwoDQaud(w,x,y) : FitFunc
+//	Wave w
+//	Variable x
+//	Variable y
+//
+//	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+//	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+//	//CurveFitDialog/ Equation:
+//	//CurveFitDialog/ f(x,y) = C1+C2*y+C3*y^2+C4*x+C5*x*y+C6*x*y^2+C7*x^2+C8*x^2*y+C9*x^2*y^2
+//	//CurveFitDialog/ End of Equation
+//	//CurveFitDialog/ Independent Variables 2
+//	//CurveFitDialog/ x
+//	//CurveFitDialog/ y
+//	//CurveFitDialog/ Coefficients 9
+//	//CurveFitDialog/ w[0] = C1
+//	//CurveFitDialog/ w[1] = C2
+//	//CurveFitDialog/ w[2] = C3
+//	//CurveFitDialog/ w[3] = C4
+//	//CurveFitDialog/ w[4] = C5
+//	//CurveFitDialog/ w[5] = C6
+//	//CurveFitDialog/ w[6] = C7
+//	//CurveFitDialog/ w[7] = C8
+//	//CurveFitDialog/ w[8] = C9
+//
+//	return w[0]+w[1]*y+w[2]*y^2+w[3]*x+w[4]*x*y+w[5]*x*y^2+w[6]*x^2+w[7]*x^2*y+w[8]*x^2*y^2
+//End

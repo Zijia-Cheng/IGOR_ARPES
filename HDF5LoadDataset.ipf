@@ -134,8 +134,12 @@ Function SSRL_HDFload_3D(startnumber, endnumber,presur,filepath)
 		endif			
 		
 		String datapath = filepath +name+".h5"
-		HDF5LoadDataset("Count","Data",datapath, name+"_count")
-		HDF5LoadDataset("Time","Data",datapath, name+"_time")
+		if(HDF5LoadDataset("Count","Data",datapath, name+"_count") == -1)
+			Abort "Stopping due to error when loading count."
+		endif
+		if(HDF5LoadDataset("Time","Data",datapath, name+"_time") == -1)
+			Abort "Stopping due to error when loading count."
+		endif
 		wave count = $(name+"_count")
 		wave time0 = $(name+"_time")
 		
@@ -276,6 +280,62 @@ Function Ultra_HDFload_2D(startnumber, endnumber,presur,filepath)
 	Endfor
 
 
+
+End
+
+
+Function Address_HDFload_2D(filename,filepath,target_name)
+	//For loading cuts for Address
+	//20230711 by ZJC
+	
+	
+	String filename
+	String filepath //"Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"
+	String target_name // name for saving the wave
+	
+		
+	String datapath = filepath +filename+".h5"
+	HDF5LoadDataset("Matrix","/",datapath, target_name)
+	wave count = $(target_name)
+	Redimension/S count
+		
+	//Matrixop /O count_ = replaceNaNs(count,0)
+		
+	LoadHDF5NumericAttribute("",datapath,"/","Matrix",2,"IGORWaveScaling")
+	wave tempAttributeWave
+	Setscale /P x, tempAttributeWave[1][1], tempAttributeWave[1][0], count
+	Setscale /P y, tempAttributeWave[2][1], tempAttributeWave[2][0], count
+	
+	
+
+
+
+End
+
+
+Function Address_HDFload_3D(filename,filepath,target_name)
+	//For loading cuts for Address
+	//20230711 by ZJC
+	
+	
+	String filename
+	String filepath //"Users:zijiacheng:Desktop:Princeton:ARPES_projects:Co3Sn2S2:20200201:"
+	String target_name // name for saving the wave
+	
+		
+	String datapath = filepath +filename+".h5"
+	HDF5LoadDataset("Matrix","/",datapath, target_name)
+	wave count = $(target_name)
+	Redimension/S count
+		
+	//Matrixop /O count_ = replaceNaNs(count,0)
+		
+	LoadHDF5NumericAttribute("",datapath,"/","Matrix",2,"IGORWaveScaling")
+	wave tempAttributeWave
+	Setscale /P x, tempAttributeWave[1][1], tempAttributeWave[1][0], count
+	Setscale /P y, tempAttributeWave[2][1], tempAttributeWave[2][0], count
+	Setscale /P z, tempAttributeWave[3][1], tempAttributeWave[3][0], count
+	
 
 End
 
@@ -453,8 +513,12 @@ Function SSRL_HDFload_2D(startnumber, endnumber,presur,filepath)
 		groupname += name+";"
 		String datapath = filepath +name+".h5"
 		
-		HDF5LoadDataset("Count","Data",datapath, name+"_count")
-		HDF5LoadDataset("Time","Data",datapath, name+"_time")
+		if(HDF5LoadDataset("Count","Data",datapath, name+"_count") == -1)
+			Abort "Stopping due to error when loading count."
+		endif
+		if(HDF5LoadDataset("Time","Data",datapath, name+"_time") == -1)
+			Abort "Stopping due to error when loading count."
+		endif
 		wave count = $(name+"_count")
 		wave time0 = $(name+"_time")
 		
@@ -517,8 +581,12 @@ endif
 String datapath = filepath +name+".h5"
 
 
-HDF5LoadDataset("Count","Data",datapath, name+"_count")
-HDF5LoadDataset("Time","Data",datapath, name+"_time")
+if(HDF5LoadDataset("Count","Data",datapath, name+"_count") == -1)
+	Abort "Stopping due to error when loading count."
+endif
+if(HDF5LoadDataset("Time","Data",datapath, name+"_time") == -1)
+	Abort "Stopping due to error when loading count."
+endif
 wave count = $(name+"_count")
 wave time0 = $(name+"_time")
 		

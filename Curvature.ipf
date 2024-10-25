@@ -519,9 +519,9 @@ end
 
 //***********************************************************************************
 
-Window Curv_Panel() : Graph
+Window Curv_Panel() : Panel
 	PauseUpdate; Silent 1		// building window...
-	NewPanel /W=(139,568,680,720)
+	NewPanel /W=(527,880,1068,1032)
 	ModifyPanel cbRGB=(32768,40777,65535)
 	ShowTools/A
 	SetDrawLayer UserBack
@@ -532,37 +532,33 @@ Window Curv_Panel() : Graph
 	DrawText 258,47,"St. Width"
 	DrawText 339,47,"Factor"
 	DrawText 141,120,"2D"
-	
-	Button button_EDCDisp,pos={435,55},size={30,22},proc=buttonProc_dispEDCcurv,title="C"
-	Button button_MDCDisp,pos={435,80},size={30,22},proc=buttonProc_dispMDCcurv,title="C"
-	Button button_2DDisp,pos={435,105},size={30,22},proc=buttonProc_disp2Dcurv,title="C"
-	Button button_EDCDisp1,pos={475,55},size={30,22},proc=buttonProc_dispEDCDeriv,title="D"
-	Button button_MDCDisp1,pos={475,80},size={30,22},proc=buttonProc_dispMDCDeriv,title="D"
-	Button button_2DDisp1,pos={475,105},size={30,22},proc=buttonProc_disp2DDeriv,title="D"
-	Button button_EDCDisp2,pos={435,28},size={66,22},proc=buttonProc_dispData,title="Disp"
-	
-	SetVariable setvar_EDCT,pos={189,57},size={50,15},proc=setvarEDCt,title=" "
+	Button button_EDCDisp,pos={435.00,55.00},size={30.00,22.00},proc=buttonProc_dispEDCcurv,title="C"
+	Button button_MDCDisp,pos={435.00,80.00},size={30.00,22.00},proc=buttonProc_dispMDCcurv,title="C"
+	Button button_2DDisp,pos={435.00,105.00},size={30.00,22.00},proc=buttonProc_disp2Dcurv,title="C"
+	Button button_EDCDisp1,pos={475.00,55.00},size={30.00,22.00},proc=buttonProc_dispEDCDeriv,title="D"
+	Button button_MDCDisp1,pos={475.00,80.00},size={30.00,22.00},proc=buttonProc_dispMDCDeriv,title="D"
+	Button button_2DDisp1,pos={475.00,105.00},size={30.00,22.00},proc=buttonProc_disp2DDeriv,title="D"
+	Button button_EDCDisp2,pos={435.00,28.00},size={66.00,22.00},proc=buttonProc_dispData,title="Disp"
+	SetVariable setvar_EDCT,pos={189.00,57.00},size={50.00,14.00},proc=setvarEDCt,title=" "
 	SetVariable setvar_EDCT,limits={1,inf,1},value= T_edct
-	SetVariable setvar_EDCW,pos={264,57},size={50,15},proc=setvarEDCw,title=" "
+	SetVariable setvar_EDCW,pos={264.00,57.00},size={50.00,14.00},proc=setvarEDCw,title=" "
 	SetVariable setvar_EDCW,limits={1,inf,2},value= T_edcW
-	SetVariable setvar_EDCF,pos={339,57},size={80,15},proc=setvarEDCF,title=" "
+	SetVariable setvar_EDCF,pos={339.00,57.00},size={80.00,14.00},proc=setvarEDCF,title=" "
 	SetVariable setvar_EDCF,limits={0,inf,0.01},value= T_EDCF
-	SetVariable setvar_MDCT,pos={189,82},size={50,15},proc=setvarmDCt,title=" "
+	SetVariable setvar_MDCT,pos={189.00,82.00},size={50.00,14.00},proc=setvarmDCt,title=" "
 	SetVariable setvar_MDCT,limits={1,inf,1},value= T_MdcT
-	SetVariable setvar_MDCW,pos={264,82},size={50,15},proc=setvarmDCw,title=" "
+	SetVariable setvar_MDCW,pos={264.00,82.00},size={50.00,14.00},proc=setvarmDCw,title=" "
 	SetVariable setvar_MDCW,limits={1,inf,2},value= T_MdcW
-	SetVariable setvar_MDCF,pos={339,82},size={80,15},proc=setvarmDCF,title=" "
+	SetVariable setvar_MDCF,pos={339.00,82.00},size={80.00,14.00},proc=setvarmDCF,title=" "
 	SetVariable setvar_MDCF,limits={0,inf,0.01},value= T_MDCF
-	SetVariable setvar_TwoDF,pos={337,105},size={80,15},proc=setvartwoDF,title=" "
-	SetVariable setvar_TwoDF,limits={0,inf,1e-06},value= T_twoDF
-	
-	CheckBox check_2d,pos={9,107},size={96,19},title="\\Z142D UPDATE"
+	SetVariable setvar_TwoDF,pos={337.00,105.00},size={80.00,14.00},proc=setvartwoDF,title=" "
+	SetVariable setvar_TwoDF,limits={0,inf,0.01},value= T_twoDF
+	CheckBox check_2d,pos={9.00,107.00},size={95.00,17.00},title="\\Z142D UPDATE"
 	CheckBox check_2d,variable= T_2dupdate
-	Button button_2dCurv,pos={23,69},size={72,27},proc=buttonProc_2dCurv,title="2D Curv"
-	Button button_data,pos={21,29},size={75,30},proc=buttonProc_curv_data,title="DATA"
-	SetVariable setvar_twoDW,pos={190,105},size={125,15},proc=setvartwodW,title=" MDC Weight"
-	SetVariable setvar_twoDw,limits={-inf,inf,1},value= T_twodW
-	
+	Button button_2dCurv,pos={23.00,69.00},size={72.00,27.00},proc=buttonProc_2dCurv,title="2D Curv"
+	Button button_data,pos={21.00,29.00},size={75.00,30.00},proc=buttonProc_curv_data,title="DATA"
+	SetVariable setvar_twoDW,pos={190.00,105.00},size={125.00,14.00},proc=setvartwodW,title=" MDC Weight"
+	SetVariable setvar_twoDW,value= T_twodW
 EndMacro
 
 //***********************************************************************************

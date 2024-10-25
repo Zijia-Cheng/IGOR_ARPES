@@ -1,0 +1,1 @@
+#pragma rtGlobals=1		// Use modern global access method.#include "LoadFITS7_3.57"#include "colortables"#include "Image_Tool"

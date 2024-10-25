@@ -2,35 +2,65 @@
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
 
-
 Function fermi_edge(pw,yw,xw): FitFunc
 // For fitting with a fermi-dirac distribution convolued with a gaussian.
 //Need to change variable upboard if the fitted wave is too broad.
 //The EDC wave should have lower kinatic energy with lower index
 
-wave pw,yw,xw
-variable upbord = 100 //upper broading interms of indexes
-Make /O /D /FREE /N = (dimsize(yw,0)+upbord) expwave,ywtemp =0 // Create free waves so there is no name confliction
-setscale /P x,dimOffset(yw,0)-upbord*deltax(yw),deltax(yw),ywtemp
-ywtemp = (pw[0])/(exp((x-pw[1])/pw[2])+1)
-expwave[] = exp(-(p*deltax(yw)/pw[3])^2/2)
+Wave pw, yw, xw
+    Variable broad = ceil(0.03/deltax(yw))
+    Variable i, j
+    Variable norm_fac = 0
 
-//normalize
-Variable sumexp
-sumexp = 2*sum(expwave)
-expwave/= sumexp
+    // Precompute Gaussian factors
+    Make/O/N=(2*broad) gaussianFactors
+    for(j = -broad; j < broad; j += 1)
+        gaussianFactors[j + broad] = exp(-(j * deltax(yw) / pw[3])^2 / 2)
+        norm_fac += gaussianFactors[j + broad]
+    endfor
 
-//We perform convolution between ywtemp and expwave
-yw = 0
-Variable i,j
-For(i=0;i<dimsize(ywtemp,0);i++)
-	for(j=0;j<dimsize(ywtemp,0);j++)
-		if(i >=upbord)
-		 yw[i-upbord] += ywtemp[j]*expwave[abs(i-j)] 
-		endif
-	endfor
-endfor // convolution
-yw += pw[4]
+    // Create a copy of yw to avoid overwriting original data
+    
+    
+
+    // Main computation
+    for(i = 0; i < dimsize(yw, 0); i += 1)
+        Variable tempSum = 0
+        for(j = -broad; j < broad; j += 1)
+            tempSum += (pw[0] / (exp((xw[i] + j * deltax(yw) - pw[1]) / pw[2]) + 1)) * gaussianFactors[j + broad]
+        endfor
+        yw[i] = tempSum
+    endfor
+
+    yw /= norm_fac
+    yw += pw[4]
+    
+
+
+
+//
+//variable upbord = 300 //upper broading interms of indexes
+//Make /O /D /FREE /N = (dimsize(yw,0)+2*upbord) expwave,ywtemp =0 // Create free waves so there is no name confliction
+//setscale /P x,dimOffset(yw,0)-upbord*deltax(yw),deltax(yw),ywtemp
+//ywtemp = (pw[0])/(exp((x-pw[1])/pw[2])+1)
+//expwave[] = exp(-(p*deltax(yw)/pw[3])^2/2)
+//
+////normalize
+//Variable sumexp
+//sumexp = 2*sum(expwave)
+//expwave/= sumexp
+//
+////We perform convolution between ywtemp and expwave
+//yw = 0
+//Variable i,j
+//For(i=upbord;i<dimsize(ywtemp,0)-upbord;i++)
+//	for(j=0;j<dimsize(ywtemp,0);j++)
+//		if(i >=upbord)
+//		 yw[i-upbord] += ywtemp[j]*expwave[abs(i-j)] 
+//		endif
+//	endfor
+//endfor // convolution
+//yw += pw[4]
 
 
 End
@@ -40,20 +70,22 @@ End
 
 
 
-Function fermi_edge_fitting(spectrum,temperature)
+Function fermi_edge_fitting(spectrum1,temperature,E_low,E_high)
 //This is for fitting fermi edge as much automatically as possibly.
 //the wave spectrum should be a 1D wave and must be scaled in eV. Lower kinetic energy should have lower index
 //variable temperature is in Kelvin
 //Zijia
 
 
-wave spectrum
+wave spectrum1
+variable E_low,E_high
 variable temperature //in K
+Duplicate /O /R=(E_low,E_high) spectrum1,spectrum
 Make /D /O /N = 4 fitt_pars = 0
 Duplicate /O spectrum,$(nameofwave(spectrum)+"_")
 wave temp = $(nameofwave(spectrum)+"_")
 
-smooth 5, temp //smooth the data to avoid sudden jump...
+smooth 1, temp //smooth the data to avoid sudden jump...
 Differentiate temp /D = $(nameofwave(spectrum)+"_dif")
 wave temp2 = $(nameofwave(spectrum)+"_dif")
 wavestats temp2
@@ -78,8 +110,8 @@ ModifyGraph /W = $name mode($nameofwave(spectrum)) = 3, marker($nameofwave(spect
 
 Duplicate /O spectrum, $(nameofwave(spectrum)+"_fit") 
 //if you want to choose let constant term be zero, especially when the choosed fitting range doesn't extend to well above fermi level
-fitt_pars[3] = 0
-Funcfit/TBOX = 768 /H="0001" ZC_Fer,fitt_pars,spectrum /D = $(nameofwave(spectrum)+"_fit")
+//fitt_pars[3] = 0
+Funcfit/TBOX = 768 /H="0000" ZC_Fer,fitt_pars,spectrum /D = $(nameofwave(spectrum)+"_fit")
 
 
 //Funcfit/TBOX = 768 ZC_Fer,fitt_pars,spectrum /D = $(nameofwave(spectrum)+"_fit")
@@ -119,7 +151,7 @@ endif
 End
 
 
-Function fermi_edge_fitting_series(spectrum,Twave)
+Function fermi_edge_fitting_series(spectrum,Twave,E_low,E_high)
 //goal: fitting a series of EDCs' fermi edge in order to get fermi energy and broadening.
 //spectrum should be a two dimensional wave with energy be dimension 0.
 //Twave is a 1D wave containing temperatures of EDCs.
@@ -127,8 +159,10 @@ Function fermi_edge_fitting_series(spectrum,Twave)
 
 wave spectrum
 wave Twave //1D: dimsize = dimsize(spectrum,1)
+variable E_low,E_high
 Make /D /O /N =(dimsize(spectrum,1),5) $(nameofwave(spectrum)+"_fitpar")
 wave temp = $(nameofwave(spectrum)+"_fitpar")
+
 
 Variable i
 For(i = 0;i<dimsize(spectrum,1);i++)
@@ -136,7 +170,7 @@ For(i = 0;i<dimsize(spectrum,1);i++)
 	wave temp1 = $(nameofwave(spectrum)+"_"+num2str(i))
 	Setscale /P x, dimoffset(spectrum,0),dimdelta(spectrum,0),temp1
 	temp1 = spectrum(x)[i]
-	fermi_edge_fitting(temp1,Twave[i])
+	fermi_edge_fitting(temp1,Twave[i],E_low,E_high)
 	wave fitt_pars2
 	temp[i][] = fitt_pars2[q]
 	MoveWindow /W = $(nameofwave(temp1)+"dis") /I 6.5*(Mod(i,5)),3.5*trunc(i/5),-1,-1
@@ -160,17 +194,18 @@ Function ZC_Fer(w,x) : FitFunc
 	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
 	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
 	//CurveFitDialog/ Equation:
-	//CurveFitDialog/ f(x) = w_2/(exp((x-w_0)/w_1) + 1)+w_3
+	//CurveFitDialog/ f(x) = (w_2*x+w_4)/(exp((x-w_0)/w_1) + 1)+w_3
 	//CurveFitDialog/ End of Equation
 	//CurveFitDialog/ Independent Variables 1
 	//CurveFitDialog/ x
-	//CurveFitDialog/ Coefficients 4
+	//CurveFitDialog/ Coefficients 5
 	//CurveFitDialog/ w[0] = w_0
 	//CurveFitDialog/ w[1] = w_1
 	//CurveFitDialog/ w[2] = w_2
-	//curvefitdialog/ w[3] = w_3
+	//CurveFitDialog/ w[3] = w_3
+	//CurveFitDialog/ w[4] = w_4
 
-	return w[2]/(exp((x-w[0])/w[1]) + 1)+w[3]
+	return (w[2]*x+w[4])/(exp((x-w[0])/w[1]) + 1)+w[3]
 End
 
 
